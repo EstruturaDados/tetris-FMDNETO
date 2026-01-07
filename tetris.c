@@ -17,8 +17,19 @@ typedef struct {
     int capacidade;   // Capacidade máxima da fila
 } FilaPecas;
 
+// Definição da estrutura da pilha de reserva
+typedef struct {
+    Peca *pecas;      // Array de peças
+    int topo;         // Índice do topo da pilha (-1 quando vazia)
+    int capacidade;   // Capacidade máxima da pilha
+} PilhaReserva;
+
 // Variável global para controlar o ID das peças
 int proximoId = 0;
+
+// ========================================
+// FUNÇÕES PARA GERAÇÃO DE PEÇAS
+// ========================================
 
 // Função para gerar uma peça aleatoriamente
 Peca gerarPeca() {
@@ -31,6 +42,10 @@ Peca gerarPeca() {
     
     return novaPeca;
 }
+
+// ========================================
+// FUNÇÕES DA FILA CIRCULAR
+// ========================================
 
 // Função para criar e inicializar a fila
 FilaPecas* criarFila(int capacidade) {
@@ -58,8 +73,7 @@ int filaCheia(FilaPecas *fila) {
 // Função para inserir uma peça no final da fila (enqueue)
 int enqueue(FilaPecas *fila, Peca peca) {
     if (filaCheia(fila)) {
-        printf("\nErro: A fila está cheia! Não é possível inserir mais peças.\n");
-        return 0;
+        return 0;  // Falha ao inserir
     }
     
     // Calcula a próxima posição (circular)
@@ -67,8 +81,7 @@ int enqueue(FilaPecas *fila, Peca peca) {
     fila->pecas[fila->tras] = peca;
     fila->tamanho++;
     
-    printf("\nPeça [%c %d] inserida com sucesso!\n", peca.nome, peca.id);
-    return 1;
+    return 1;  // Sucesso
 }
 
 // Função para remover uma peça da frente da fila (dequeue)
@@ -76,51 +89,14 @@ Peca dequeue(FilaPecas *fila) {
     Peca pecaVazia = {' ', -1};
     
     if (filaVazia(fila)) {
-        printf("\nErro: A fila está vazia! Não há peças para jogar.\n");
-        return pecaVazia;
+        return pecaVazia;  // Retorna peça vazia se a fila estiver vazia
     }
     
     Peca pecaRemovida = fila->pecas[fila->frente];
     fila->frente = (fila->frente + 1) % fila->capacidade;
     fila->tamanho--;
     
-    printf("\nPeça [%c %d] jogada com sucesso!\n", pecaRemovida.nome, pecaRemovida.id);
     return pecaRemovida;
-}
-
-// Função para exibir o estado atual da fila
-void exibirFila(FilaPecas *fila) {
-    printf("\n========================================\n");
-    printf("       FILA DE PEÇAS\n");
-    printf("========================================\n");
-    
-    if (filaVazia(fila)) {
-        printf("[Fila vazia]\n");
-    } else {
-        int i, index;
-        for (i = 0; i < fila->tamanho; i++) {
-            // Calcula o índice circular
-            index = (fila->frente + i) % fila->capacidade;
-            printf("[%c %d] ", fila->pecas[index].nome, fila->pecas[index].id);
-        }
-        printf("\n");
-    }
-    
-    printf("========================================\n");
-    printf("Tamanho: %d/%d\n", fila->tamanho, fila->capacidade);
-    printf("========================================\n");
-}
-
-// Função para exibir o menu de opções
-void exibirMenu() {
-    printf("\n+--------------------------------------+\n");
-    printf("|        OPÇÕES DE AÇÃO               |\n");
-    printf("+--------------------------------------+\n");
-    printf("| 1 - Jogar peça (dequeue)            |\n");
-    printf("| 2 - Inserir nova peça (enqueue)     |\n");
-    printf("| 0 - Sair                            |\n");
-    printf("+--------------------------------------+\n");
-    printf("Escolha uma opção: ");
 }
 
 // Função para liberar a memória da fila
@@ -129,44 +105,220 @@ void liberarFila(FilaPecas *fila) {
     free(fila);
 }
 
-// Função principal
+// ========================================
+// FUNÇÕES DA PILHA DE RESERVA
+// ========================================
+
+// Função para criar e inicializar a pilha
+PilhaReserva* criarPilha(int capacidade) {
+    PilhaReserva *pilha = (PilhaReserva*)malloc(sizeof(PilhaReserva));
+    
+    pilha->pecas = (Peca*)malloc(capacidade * sizeof(Peca));
+    pilha->topo = -1;  // Pilha inicia vazia
+    pilha->capacidade = capacidade;
+    
+    return pilha;
+}
+
+// Função para verificar se a pilha está vazia
+int pilhaVazia(PilhaReserva *pilha) {
+    return pilha->topo == -1;
+}
+
+// Função para verificar se a pilha está cheia
+int pilhaCheia(PilhaReserva *pilha) {
+    return pilha->topo == pilha->capacidade - 1;
+}
+
+// Função para inserir uma peça no topo da pilha (push)
+int push(PilhaReserva *pilha, Peca peca) {
+    if (pilhaCheia(pilha)) {
+        return 0;  // Falha ao inserir
+    }
+    
+    pilha->topo++;
+    pilha->pecas[pilha->topo] = peca;
+    
+    return 1;  // Sucesso
+}
+
+// Função para remover uma peça do topo da pilha (pop)
+Peca pop(PilhaReserva *pilha) {
+    Peca pecaVazia = {' ', -1};
+    
+    if (pilhaVazia(pilha)) {
+        return pecaVazia;  // Retorna peça vazia se a pilha estiver vazia
+    }
+    
+    Peca pecaRemovida = pilha->pecas[pilha->topo];
+    pilha->topo--;
+    
+    return pecaRemovida;
+}
+
+// Função para liberar a memória da pilha
+void liberarPilha(PilhaReserva *pilha) {
+    free(pilha->pecas);
+    free(pilha);
+}
+
+// ========================================
+// FUNÇÕES DE EXIBIÇÃO
+// ========================================
+
+// Função para exibir o estado atual (fila e pilha)
+void exibirEstadoAtual(FilaPecas *fila, PilhaReserva *pilha) {
+    printf("\n========================================\n");
+    printf("         ESTADO ATUAL\n");
+    printf("========================================\n");
+    
+    // Exibir fila de peças
+    printf("\nFila de pecas: ");
+    if (filaVazia(fila)) {
+        printf("[Vazia]");
+    } else {
+        int i, index;
+        for (i = 0; i < fila->tamanho; i++) {
+            index = (fila->frente + i) % fila->capacidade;
+            printf("[%c %d] ", fila->pecas[index].nome, fila->pecas[index].id);
+        }
+    }
+    printf("\n");
+    
+    // Exibir pilha de reserva
+    printf("Pilha de reserva (Topo -> Base): ");
+    if (pilhaVazia(pilha)) {
+        printf("[Vazia]");
+    } else {
+        int i;
+        for (i = pilha->topo; i >= 0; i--) {
+            printf("[%c %d] ", pilha->pecas[i].nome, pilha->pecas[i].id);
+        }
+    }
+    printf("\n");
+    
+    printf("========================================\n");
+}
+
+// Função para exibir o menu de opções
+void exibirMenu() {
+    printf("\n+--------------------------------------+\n");
+    printf("|        OPCOES DE ACAO                |\n");
+    printf("+--------------------------------------+\n");
+    printf("| Codigo | Acao                        |\n");
+    printf("+--------------------------------------+\n");
+    printf("|   1    | Jogar peca                  |\n");
+    printf("|   2    | Reservar peca               |\n");
+    printf("|   3    | Usar peca reservada         |\n");
+    printf("|   0    | Sair                        |\n");
+    printf("+--------------------------------------+\n");
+    printf("\nOpcao: ");
+}
+
+// ========================================
+// FUNÇÕES DE AÇÕES DO JOGO
+// ========================================
+
+// Função para jogar uma peça (remove da fila)
+void jogarPeca(FilaPecas *fila) {
+    if (filaVazia(fila)) {
+        printf("\n[ERRO] A fila esta vazia! Nao ha pecas para jogar.\n");
+        return;
+    }
+    
+    Peca pecaJogada = dequeue(fila);
+    printf("\n[ACAO] Peca [%c %d] foi jogada!\n", pecaJogada.nome, pecaJogada.id);
+    
+    // Adiciona uma nova peça automaticamente
+    Peca novaPeca = gerarPeca();
+    enqueue(fila, novaPeca);
+    printf("[INFO] Nova peca [%c %d] foi adicionada a fila.\n", novaPeca.nome, novaPeca.id);
+}
+
+// Função para reservar uma peça (move da fila para pilha)
+void reservarPeca(FilaPecas *fila, PilhaReserva *pilha) {
+    if (filaVazia(fila)) {
+        printf("\n[ERRO] A fila esta vazia! Nao ha pecas para reservar.\n");
+        return;
+    }
+    
+    if (pilhaCheia(pilha)) {
+        printf("\n[ERRO] A pilha de reserva esta cheia! Nao e possivel reservar mais pecas.\n");
+        return;
+    }
+    
+    Peca pecaReservada = dequeue(fila);
+    push(pilha, pecaReservada);
+    printf("\n[ACAO] Peca [%c %d] foi movida para a reserva!\n", pecaReservada.nome, pecaReservada.id);
+    
+    // Adiciona uma nova peça automaticamente
+    Peca novaPeca = gerarPeca();
+    enqueue(fila, novaPeca);
+    printf("[INFO] Nova peca [%c %d] foi adicionada a fila.\n", novaPeca.nome, novaPeca.id);
+}
+
+// Função para usar uma peça reservada (remove da pilha)
+void usarPecaReservada(PilhaReserva *pilha) {
+    if (pilhaVazia(pilha)) {
+        printf("\n[ERRO] A pilha de reserva esta vazia! Nao ha pecas reservadas para usar.\n");
+        return;
+    }
+    
+    Peca pecaUsada = pop(pilha);
+    printf("\n[ACAO] Peca reservada [%c %d] foi usada!\n", pecaUsada.nome, pecaUsada.id);
+}
+
+// ========================================
+// FUNÇÃO PRINCIPAL
+// ========================================
+
 int main() {
     int opcao;
-    int capacidadeFila = 5;  // Capacidade fixa da fila
+    int capacidadeFila = 5;     // Capacidade da fila
+    int capacidadePilha = 3;    // Capacidade da pilha de reserva
     
     // Inicializa o gerador de números aleatórios
     srand(time(NULL));
     
-    // Cria a fila de peças
+    // Cria a fila de peças e a pilha de reserva
     FilaPecas *fila = criarFila(capacidadeFila);
+    PilhaReserva *pilha = criarPilha(capacidadePilha);
     
-    // Inicializa a fila com 5 peças
+    // Cabeçalho do programa
     printf("========================================\n");
-    printf("    TETRIS STACK - Sistema de Fila    \n");
+    printf("    TETRIS STACK - Gerenciador de Pecas\n");
     printf("========================================\n");
-    printf("\nInicializando a fila com %d peças...\n", capacidadeFila);
+    printf("\nInicializando o jogo...\n");
+    printf("- Fila de pecas: %d posicoes\n", capacidadeFila);
+    printf("- Pilha de reserva: %d posicoes\n", capacidadePilha);
     
+    // Inicializa a fila com peças
+    printf("\nGerando pecas iniciais...\n");
     for (int i = 0; i < capacidadeFila; i++) {
         Peca novaPeca = gerarPeca();
         enqueue(fila, novaPeca);
+        printf("  Peca [%c %d] adicionada.\n", novaPeca.nome, novaPeca.id);
     }
+    
+    printf("\nJogo iniciado! Boa sorte!\n");
     
     // Loop principal do programa
     do {
-        exibirFila(fila);
+        exibirEstadoAtual(fila, pilha);
         exibirMenu();
         scanf("%d", &opcao);
         
         switch(opcao) {
-            case 1:  // Jogar peça (dequeue)
-                dequeue(fila);
+            case 1:  // Jogar peça
+                jogarPeca(fila);
                 break;
                 
-            case 2:  // Inserir nova peça (enqueue)
-                {
-                    Peca novaPeca = gerarPeca();
-                    enqueue(fila, novaPeca);
-                }
+            case 2:  // Reservar peça
+                reservarPeca(fila, pilha);
+                break;
+                
+            case 3:  // Usar peça reservada
+                usarPecaReservada(pilha);
                 break;
                 
             case 0:  // Sair
@@ -177,7 +329,7 @@ int main() {
                 break;
                 
             default:
-                printf("\nOpção inválida! Tente novamente.\n");
+                printf("\n[ERRO] Opcao invalida! Tente novamente.\n");
                 break;
         }
         
@@ -185,6 +337,7 @@ int main() {
     
     // Libera a memória alocada
     liberarFila(fila);
+    liberarPilha(pilha);
     
     return 0;
 }
