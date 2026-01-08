@@ -202,17 +202,19 @@ void exibirEstadoAtual(FilaPecas *fila, PilhaReserva *pilha) {
 
 // Função para exibir o menu de opções
 void exibirMenu() {
-    printf("\n+--------------------------------------+\n");
-    printf("|        OPCOES DE ACAO                |\n");
-    printf("+--------------------------------------+\n");
-    printf("| Codigo | Acao                        |\n");
-    printf("+--------------------------------------+\n");
-    printf("|   1    | Jogar peca                  |\n");
-    printf("|   2    | Reservar peca               |\n");
-    printf("|   3    | Usar peca reservada         |\n");
-    printf("|   0    | Sair                        |\n");
-    printf("+--------------------------------------+\n");
-    printf("\nOpcao: ");
+    printf("\n+----------------------------------------------+\n");
+    printf("|           OPCOES DE ACAO                     |\n");
+    printf("+----------------------------------------------+\n");
+    printf("| Codigo | Acao                                |\n");
+    printf("+----------------------------------------------+\n");
+    printf("|   1    | Jogar peca da frente da fila        |\n");
+    printf("|   2    | Enviar peca da fila para a pilha    |\n");
+    printf("|   3    | Usar peca da pilha de reserva       |\n");
+    printf("|   4    | Trocar peca da fila com topo pilha  |\n");
+    printf("|   5    | Trocar 3 da fila com 3 da pilha     |\n");
+    printf("|   0    | Sair                                |\n");
+    printf("+----------------------------------------------+\n");
+    printf("\nOpcao escolhida: ");
 }
 
 // ========================================
@@ -268,6 +270,85 @@ void usarPecaReservada(PilhaReserva *pilha) {
     printf("\n[ACAO] Peca reservada [%c %d] foi usada!\n", pecaUsada.nome, pecaUsada.id);
 }
 
+// Função para trocar a peça da frente da fila com o topo da pilha
+void trocarPecaAtual(FilaPecas *fila, PilhaReserva *pilha) {
+    if (filaVazia(fila)) {
+        printf("\n[ERRO] A fila esta vazia! Nao ha peca para trocar.\n");
+        return;
+    }
+    
+    if (pilhaVazia(pilha)) {
+        printf("\n[ERRO] A pilha de reserva esta vazia! Nao ha peca para trocar.\n");
+        return;
+    }
+    
+    // Remove peça da frente da fila
+    Peca pecaFila = fila->pecas[fila->frente];
+    
+    // Remove peça do topo da pilha
+    Peca pecaPilha = pilha->pecas[pilha->topo];
+    
+    // Realiza a troca
+    fila->pecas[fila->frente] = pecaPilha;
+    pilha->pecas[pilha->topo] = pecaFila;
+    
+    printf("\n[ACAO] Troca realizada!\n");
+    printf("  - Peca [%c %d] da fila foi para a pilha\n", pecaFila.nome, pecaFila.id);
+    printf("  - Peca [%c %d] da pilha foi para a fila\n", pecaPilha.nome, pecaPilha.id);
+}
+
+// Função para trocar as 3 primeiras peças da fila com as 3 peças da pilha
+void trocaMultipla(FilaPecas *fila, PilhaReserva *pilha) {
+    // Verifica se a fila tem pelo menos 3 peças
+    if (fila->tamanho < 3) {
+        printf("\n[ERRO] A fila precisa ter pelo menos 3 pecas para realizar a troca multipla.\n");
+        printf("  Pecas na fila: %d\n", fila->tamanho);
+        return;
+    }
+    
+    // Verifica se a pilha tem exatamente 3 peças
+    if (pilha->topo + 1 < 3) {
+        printf("\n[ERRO] A pilha precisa ter pelo menos 3 pecas para realizar a troca multipla.\n");
+        printf("  Pecas na pilha: %d\n", pilha->topo + 1);
+        return;
+    }
+    
+    // Array temporário para armazenar as 3 peças da fila
+    Peca tempFila[3];
+    
+    // Array temporário para armazenar as 3 peças da pilha
+    Peca tempPilha[3];
+    
+    // Copia as 3 primeiras peças da fila
+    printf("\n[ACAO] Iniciando troca multipla...\n");
+    printf("\nPecas da fila a serem trocadas:\n");
+    for (int i = 0; i < 3; i++) {
+        int index = (fila->frente + i) % fila->capacidade;
+        tempFila[i] = fila->pecas[index];
+        printf("  [%c %d] ", tempFila[i].nome, tempFila[i].id);
+    }
+    
+    // Copia as 3 peças do topo da pilha (do topo para a base)
+    printf("\n\nPecas da pilha a serem trocadas:\n");
+    for (int i = 0; i < 3; i++) {
+        tempPilha[i] = pilha->pecas[pilha->topo - i];
+        printf("  [%c %d] ", tempPilha[i].nome, tempPilha[i].id);
+    }
+    
+    // Coloca as peças da pilha na fila (do topo da pilha para frente da fila)
+    for (int i = 0; i < 3; i++) {
+        int index = (fila->frente + i) % fila->capacidade;
+        fila->pecas[index] = tempPilha[i];
+    }
+    
+    // Coloca as peças da fila na pilha (invertendo a ordem)
+    for (int i = 0; i < 3; i++) {
+        pilha->pecas[pilha->topo - i] = tempFila[i];
+    }
+    
+    printf("\n\n[SUCESSO] Troca multipla realizada entre os 3 primeiros da fila e os 3 da pilha!\n");
+}
+
 // ========================================
 // FUNÇÃO PRINCIPAL
 // ========================================
@@ -319,6 +400,14 @@ int main() {
                 
             case 3:  // Usar peça reservada
                 usarPecaReservada(pilha);
+                break;
+                
+            case 4:  // Trocar peça da frente da fila com topo da pilha
+                trocarPecaAtual(fila, pilha);
+                break;
+                
+            case 5:  // Trocar 3 peças da fila com 3 da pilha
+                trocaMultipla(fila, pilha);
                 break;
                 
             case 0:  // Sair
